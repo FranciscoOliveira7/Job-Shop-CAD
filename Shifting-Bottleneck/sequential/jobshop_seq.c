@@ -39,17 +39,17 @@
 #include <time.h>
 #include <limits.h>
 
-#define MAX_JOBS     30
+#define MAX_JOBS 30
 #define MAX_MACHINES 30
-#define MAX_OPS      (MAX_JOBS * MAX_MACHINES)   /* total operations */
-#define INF          0x3fffffff
+#define MAX_OPS (MAX_JOBS * MAX_MACHINES) /* total operations */
+#define INF 0x3fffffff
 
 /* ── Input ──────────────────────────────────────────────────── */
 static int num_jobs;
 static int num_machines;
 /* machine_id[j][o], proc_time[j][o] */
 static int machine_id[MAX_JOBS][MAX_MACHINES];
-static int proc_time [MAX_JOBS][MAX_MACHINES];
+static int proc_time[MAX_JOBS][MAX_MACHINES];
 
 /*
  * Operation indexing: op_id(j,o) = j*num_machines + o
@@ -59,7 +59,7 @@ static int proc_time [MAX_JOBS][MAX_MACHINES];
 static int total_ops;
 #define SRC (total_ops)
 #define SNK (total_ops + 1)
-#define N   (total_ops + 2)   /* total nodes including src/snk */
+#define N (total_ops + 2) /* total nodes including src/snk */
 
 /* ── Disjunctive graph (adjacency as flat arrays) ───────────── */
 /*
@@ -78,39 +78,45 @@ static int total_ops;
 /* adj[u][0..adj_cnt[u]-1] = successors of u */
 /* adj_w[u][k] = weight of arc u→adj[u][k] = proc_time of u */
 #define MAX_ADJ 64
-static int adj    [MAX_OPS+2][MAX_ADJ];
-static int adj_w  [MAX_OPS+2][MAX_ADJ];
-static int adj_cnt[MAX_OPS+2];
+static int adj[MAX_OPS + 2][MAX_ADJ];
+static int adj_w[MAX_OPS + 2][MAX_ADJ];
+static int adj_cnt[MAX_OPS + 2];
 
 /* pred[u][0..pred_cnt[u]-1] = predecessors of u (for tail computation) */
-static int pred    [MAX_OPS+2][MAX_ADJ];
-static int pred_w  [MAX_OPS+2][MAX_ADJ];   /* weight of arc pred→u = proc_time[pred] */
-static int pred_cnt[MAX_OPS+2];
+static int pred[MAX_OPS + 2][MAX_ADJ];
+static int pred_w[MAX_OPS + 2][MAX_ADJ]; /* weight of arc pred→u = proc_time[pred] */
+static int pred_cnt[MAX_OPS + 2];
 
-static void add_arc(int u, int v, int w) {
-    adj [u][adj_cnt[u]]  = v;
-    adj_w[u][adj_cnt[u]] = w;
-    adj_cnt[u]++;
-    pred [v][pred_cnt[v]]  = u;
-    pred_w[v][pred_cnt[v]] = w;
-    pred_cnt[v]++;
+static void add_arc(int from_node, int to_node, int weight)
+{
+    adj[from_node][adj_cnt[from_node]] = to_node;
+    adj_w[from_node][adj_cnt[from_node]] = weight;
+    adj_cnt[from_node]++;
+    pred[to_node][pred_cnt[to_node]] = from_node;
+    pred_w[to_node][pred_cnt[to_node]] = weight;
+    pred_cnt[to_node]++;
 }
 
-static void remove_arc(int u, int v) {
-    /* Remove u→v from adj and v's pred list */
-    for (int k = 0; k < adj_cnt[u]; k++) {
-        if (adj[u][k] == v) {
-            adj[u][k]   = adj[u][adj_cnt[u]-1];
-            adj_w[u][k] = adj_w[u][adj_cnt[u]-1];
-            adj_cnt[u]--;
+static void remove_arc(int from_node, int to_node)
+{
+    /* Remove from_node->to_node from adj and to_node's pred list */
+    for (int edge_index = 0; edge_index < adj_cnt[from_node]; edge_index++)
+    {
+        if (adj[from_node][edge_index] == to_node)
+        {
+            adj[from_node][edge_index] = adj[from_node][adj_cnt[from_node] - 1];
+            adj_w[from_node][edge_index] = adj_w[from_node][adj_cnt[from_node] - 1];
+            adj_cnt[from_node]--;
             break;
         }
     }
-    for (int k = 0; k < pred_cnt[v]; k++) {
-        if (pred[v][k] == u) {
-            pred[v][k]   = pred[v][pred_cnt[v]-1];
-            pred_w[v][k] = pred_w[v][pred_cnt[v]-1];
-            pred_cnt[v]--;
+    for (int edge_index = 0; edge_index < pred_cnt[to_node]; edge_index++)
+    {
+        if (pred[to_node][edge_index] == from_node)
+        {
+            pred[to_node][edge_index] = pred[to_node][pred_cnt[to_node] - 1];
+            pred_w[to_node][edge_index] = pred_w[to_node][pred_cnt[to_node] - 1];
+            pred_cnt[to_node]--;
             break;
         }
     }
@@ -124,46 +130,60 @@ static void remove_arc(int u, int v) {
  * orienting disjunctive arcs, we iterate until no update occurs.
  * For correctness on the DAG structure this converges in O(N) passes.
  */
-static int r_time[MAX_OPS+2];   /* release times  */
-static int q_time[MAX_OPS+2];   /* tail times (longest path to SNK) */
+static int r_time[MAX_OPS + 2]; /* release times  */
+static int q_time[MAX_OPS + 2]; /* tail times (longest path to SNK) */
 
-static void compute_release(void) {
-    for (int i = 0; i < N; i++) r_time[i] = 0;
+static void compute_release(void)
+{
+    for (int node = 0; node < N; node++)
+        r_time[node] = 0;
     r_time[SRC] = 0;
     /* Bellman-Ford style: N-1 relaxations */
-    for (int pass = 0; pass < N; pass++) {
+    for (int pass = 0; pass < N; pass++)
+    {
         int changed = 0;
-        for (int u = 0; u < N; u++) {
-            for (int k = 0; k < adj_cnt[u]; k++) {
-                int v = adj[u][k];
-                int w = adj_w[u][k];
-                if (r_time[u] + w > r_time[v]) {
-                    r_time[v] = r_time[u] + w;
+        for (int from_node = 0; from_node < N; from_node++)
+        {
+            for (int edge_index = 0; edge_index < adj_cnt[from_node]; edge_index++)
+            {
+                int to_node = adj[from_node][edge_index];
+                int edge_weight = adj_w[from_node][edge_index];
+                if (r_time[from_node] + edge_weight > r_time[to_node])
+                {
+                    r_time[to_node] = r_time[from_node] + edge_weight;
                     changed = 1;
                 }
             }
         }
-        if (!changed) break;
+        if (!changed)
+            break;
     }
 }
 
-static void compute_tails(void) {
+static void compute_tails(void)
+{
     /* q[u] = longest path from u to SNK (not including proc_time[u]) */
-    for (int i = 0; i < N; i++) q_time[i] = 0;
-    for (int pass = 0; pass < N; pass++) {
+    for (int node = 0; node < N; node++)
+        q_time[node] = 0;
+    for (int pass = 0; pass < N; pass++)
+    {
         int changed = 0;
-        for (int v = 0; v < N; v++) {
-            for (int k = 0; k < pred_cnt[v]; k++) {
-                int u = pred[v][k];
-                int w = pred_w[v][k];   /* = proc_time[u] */
+        for (int to_node = 0; to_node < N; to_node++)
+        {
+            for (int edge_index = 0; edge_index < pred_cnt[to_node]; edge_index++)
+            {
+                int from_node = pred[to_node][edge_index];
+                int edge_weight = pred_w[to_node][edge_index]; /* = proc_time[from_node] */
                 /* q[u] = max(q[u], w + q[v]) */
-                if (w + q_time[v] > q_time[u]) {
-                    q_time[u] = w + q_time[v];
+                if (edge_weight + q_time[to_node] > q_time[from_node])
+                {
+                    q_time[from_node] = edge_weight + q_time[to_node];
                     changed = 1;
                 }
             }
         }
-        if (!changed) break;
+        if (!changed)
+            break;
     }
 }
 
@@ -191,35 +211,57 @@ static int ops_on_machine_cnt[MAX_MACHINES];
 
 #define HEAP_MAX MAX_JOBS
 
-typedef struct { int op; int q; int r; int p; } HeapItem;
+typedef struct
+{
+    int op;
+    int q;
+    int r;
+    int p;
+} HeapItem;
 static HeapItem heap[HEAP_MAX];
 static int heap_size = 0;
 
-static void heap_push(HeapItem item) {
-    int i = heap_size++;
-    heap[i] = item;
-    while (i > 0) {
-        int par = (i-1)/2;
-        if (heap[par].q < heap[i].q) {
-            HeapItem tmp = heap[par]; heap[par] = heap[i]; heap[i] = tmp;
-            i = par;
-        } else break;
+static void heap_push(HeapItem item)
+{
+    int insert_index = heap_size++;
+    heap[insert_index] = item;
+    while (insert_index > 0)
+    {
+        int parent_index = (insert_index - 1) / 2;
+        if (heap[parent_index].q < heap[insert_index].q)
+        {
+            HeapItem tmp = heap[parent_index];
+            heap[parent_index] = heap[insert_index];
+            heap[insert_index] = tmp;
+            insert_index = parent_index;
+        }
+        else
+            break;
     }
 }
 
-static HeapItem heap_pop(void) {
-    HeapItem top = heap[0];
+static HeapItem heap_pop(void)
+{
+    HeapItem top_item = heap[0];
     heap[0] = heap[--heap_size];
-    int i = 0;
-    while (1) {
-        int l = 2*i+1, r = 2*i+2, best = i;
-        if (l < heap_size && heap[l].q > heap[best].q) best = l;
-        if (r < heap_size && heap[r].q > heap[best].q) best = r;
-        if (best == i) break;
-        HeapItem tmp = heap[i]; heap[i] = heap[best]; heap[best] = tmp;
-        i = best;
+    int current_index = 0;
+    while (1)
+    {
+        int left_child = 2 * current_index + 1;
+        int right_child = 2 * current_index + 2;
+        int best_index = current_index;
+        if (left_child < heap_size && heap[left_child].q > heap[best_index].q)
+            best_index = left_child;
+        if (right_child < heap_size && heap[right_child].q > heap[best_index].q)
+            best_index = right_child;
+        if (best_index == current_index)
+            break;
+        HeapItem tmp = heap[current_index];
+        heap[current_index] = heap[best_index];
+        heap[best_index] = tmp;
+        current_index = best_index;
     }
-    return top;
+    return top_item;
 }
 
 /*
@@ -228,45 +270,63 @@ static HeapItem heap_pop(void) {
  *   Output: seq[0..n-1] = scheduling order (indices into ops[]).
  *   Returns: Cmax of the resulting schedule.
  */
-static int solve_one_machine(const int *ops, int n,
-                              const int *r, const int *p, const int *q,
-                              int *seq) {
+static int solve_one_machine(const int *ops, int operation_count,
+                             const int *release_times, const int *processing_times,
+                             const int *tail_times, int *sequence)
+{
     /* unscheduled flags */
     static int done[MAX_JOBS];
-    for (int i = 0; i < n; i++) done[i] = 0;
+    for (int i = 0; i < operation_count; i++)
+        done[i] = 0;
 
     heap_size = 0;
-    int t = 0;
+    int current_time = 0;
     /* find min release time to start */
-    int min_r = INF;
-    for (int i = 0; i < n; i++) if (r[i] < min_r) min_r = r[i];
-    t = min_r;
+    int min_release = INF;
+    for (int i = 0; i < operation_count; i++)
+    {
+        if (release_times[i] < min_release)
+            min_release = release_times[i];
+    }
+    current_time = min_release;
 
-    int seq_idx = 0;
+    int sequence_index = 0;
     int cmax = 0;
 
-    while (seq_idx < n) {
-        /* push all ops released by t */
-        for (int i = 0; i < n; i++) {
-            if (!done[i] && r[i] <= t) {
-                HeapItem it; it.op=i; it.q=q[i]; it.r=r[i]; it.p=p[i];
+    while (sequence_index < operation_count)
+    {
+        /* push all operations released by current_time */
+        for (int i = 0; i < operation_count; i++)
+        {
+            if (!done[i] && release_times[i] <= current_time)
+            {
+                HeapItem it;
+                it.op = i;
+                it.q = tail_times[i];
+                it.r = release_times[i];
+                it.p = processing_times[i];
                 heap_push(it);
                 done[i] = 2; /* in heap */
             }
         }
-        if (heap_size == 0) {
-            /* no op ready: jump to next release time */
-            int next = INF;
-            for (int i = 0; i < n; i++)
-                if (!done[i] && r[i] < next) next = r[i];
-            t = next;
+        if (heap_size == 0)
+        {
+            /* no operation ready: jump to next release time */
+            int next_release = INF;
+            for (int i = 0; i < operation_count; i++)
+            {
+                if (!done[i] && release_times[i] < next_release)
+                    next_release = release_times[i];
+            }
+            current_time = next_release;
             continue;
         }
-        HeapItem cur = heap_pop();
-        seq[seq_idx++] = cur.op;
-        t += cur.p;
-        int c = t + cur.q;
-        if (c > cmax) cmax = c;
+        HeapItem current_op = heap_pop();
+        sequence[sequence_index++] = current_op.op;
+        current_time += current_op.p;
+        int completion_with_tail = current_time + current_op.q;
+        if (completion_with_tail > cmax)
+            cmax = completion_with_tail;
     }
     return cmax;
 }
@@ -281,87 +341,116 @@ static int machine_seq[MAX_MACHINES][MAX_JOBS];
  * This means: for consecutive ops seq[k] and seq[k+1],
  * add arc seq[k] → seq[k+1] with weight proc_time[seq[k]].
  */
-static void fix_machine(int m, const int *seq, int n) {
+static void fix_machine(int machine, const int *sequence, int operation_count)
+{
     /* Remove any existing disjunctive arcs for this machine
        (needed during re-optimisation) */
-    for (int i = 0; i < n-1; i++) {
-        int u = machine_seq[m][i];
-        int v = machine_seq[m][i+1];
-        remove_arc(u, v);
+    for (int i = 0; i < operation_count - 1; i++)
+    {
+        int from_node = machine_seq[machine][i];
+        int to_node = machine_seq[machine][i + 1];
+        remove_arc(from_node, to_node);
     }
-    /* Add new arcs according to seq */
-    for (int k = 0; k < n-1; k++) {
-        int u = ops_on_machine[m][seq[k]];
-        int v = ops_on_machine[m][seq[k+1]];
-        int w = 0;
-        /* find proc_time of u */
-        for (int j = 0; j < num_jobs; j++)
-            for (int o = 0; o < num_machines; o++)
-                if (j*num_machines+o == u) w = proc_time[j][o];
-        add_arc(u, v, w);
-        machine_seq[m][k]   = u;
-        machine_seq[m][k+1] = v;
+    /* Add new arcs according to sequence */
+    for (int order_index = 0; order_index < operation_count - 1; order_index++)
+    {
+        int from_node = ops_on_machine[machine][sequence[order_index]];
+        int to_node = ops_on_machine[machine][sequence[order_index + 1]];
+        int processing_time = 0;
+        for (int job = 0; job < num_jobs; job++)
+        {
+            for (int op = 0; op < num_machines; op++)
+            {
+                if (job * num_machines + op == from_node)
+                    processing_time = proc_time[job][op];
+            }
+        }
+        add_arc(from_node, to_node, processing_time);
+        machine_seq[machine][order_index] = from_node;
+        machine_seq[machine][order_index + 1] = to_node;
     }
-    machine_fixed[m] = 1;
+    machine_fixed[machine] = 1;
 }
 
 /* ── Compute r and q for ops on machine m ───────────────────── */
-static void get_rq_for_machine(int m, int *r_out, int *p_out, int *q_out) {
-    int n = ops_on_machine_cnt[m];
-    for (int i = 0; i < n; i++) {
-        int op = ops_on_machine[m][i];
-        /* find proc_time of op */
-        int ptime = 0;
-        for (int j = 0; j < num_jobs; j++)
-            for (int o = 0; o < num_machines; o++)
-                if (j*num_machines+o == op) ptime = proc_time[j][o];
-        r_out[i] = r_time[op];
-        p_out[i] = ptime;
-        q_out[i] = q_time[op];
+static void get_rq_for_machine(int machine, int *release_out,
+                               int *processing_out, int *tail_out)
+{
+    int operation_count = ops_on_machine_cnt[machine];
+    for (int i = 0; i < operation_count; i++)
+    {
+        int operation_id = ops_on_machine[machine][i];
+        int processing_time = 0;
+        for (int job = 0; job < num_jobs; job++)
+        {
+            for (int op = 0; op < num_machines; op++)
+            {
+                if (job * num_machines + op == operation_id)
+                    processing_time = proc_time[job][op];
+            }
+        }
+        release_out[i] = r_time[operation_id];
+        processing_out[i] = processing_time;
+        tail_out[i] = q_time[operation_id];
     }
 }
 
 /* ── Shifting Bottleneck main loop ──────────────────────────── */
-static void shifting_bottleneck(void) {
-    static int r[MAX_JOBS], p[MAX_JOBS], q[MAX_JOBS], seq[MAX_JOBS];
+static void shifting_bottleneck(void)
+{
+    static int release_times[MAX_JOBS];
+    static int processing_times[MAX_JOBS];
+    static int tail_times[MAX_JOBS];
+    static int sequence[MAX_JOBS];
 
-    int remaining = num_machines;
+    int remaining_machines = num_machines;
 
-    while (remaining > 0) {
+    while (remaining_machines > 0)
+    {
         /* Recompute r and q with current graph */
         compute_release();
         compute_tails();
 
         /* Find bottleneck: machine with max Cmax among unscheduled */
-        int bottleneck = -1;
-        int best_cmax  = -1;
-        int best_seq[MAX_JOBS];
+        int bottleneck_machine = -1;
+        int best_cmax = -1;
+        int best_sequence[MAX_JOBS];
 
-        for (int m = 0; m < num_machines; m++) {
-            if (machine_fixed[m]) continue;
-            int n = ops_on_machine_cnt[m];
-            get_rq_for_machine(m, r, p, q);
-            int cm = solve_one_machine(ops_on_machine[m], n, r, p, q, seq);
-            if (cm > best_cmax) {
-                best_cmax = cm;
-                bottleneck = m;
-                memcpy(best_seq, seq, n * sizeof(int));
+        for (int machine = 0; machine < num_machines; machine++)
+        {
+            if (machine_fixed[machine])
+                continue;
+            int operation_count = ops_on_machine_cnt[machine];
+            get_rq_for_machine(machine, release_times, processing_times, tail_times);
+            int machine_cmax = solve_one_machine(ops_on_machine[machine], operation_count,
+                                                 release_times, processing_times,
+                                                 tail_times, sequence);
+            if (machine_cmax > best_cmax)
+            {
+                best_cmax = machine_cmax;
+                bottleneck_machine = machine;
+                memcpy(best_sequence, sequence, operation_count * sizeof(int));
             }
         }
 
         /* Fix the bottleneck machine */
-        fix_machine(bottleneck, best_seq, ops_on_machine_cnt[bottleneck]);
-        remaining--;
+        fix_machine(bottleneck_machine, best_sequence,
+                    ops_on_machine_cnt[bottleneck_machine]);
+        remaining_machines--;
 
         /* Re-optimise already-fixed machines with updated graph */
         compute_release();
         compute_tails();
-        for (int m = 0; m < num_machines; m++) {
-            if (!machine_fixed[m] || m == bottleneck) continue;
-            int n = ops_on_machine_cnt[m];
-            get_rq_for_machine(m, r, p, q);
-            solve_one_machine(ops_on_machine[m], n, r, p, q, seq);
-            fix_machine(m, seq, n);
+        for (int machine = 0; machine < num_machines; machine++)
+        {
+            if (!machine_fixed[machine] || machine == bottleneck_machine)
+                continue;
+            int operation_count = ops_on_machine_cnt[machine];
+            get_rq_for_machine(machine, release_times, processing_times, tail_times);
+            solve_one_machine(ops_on_machine[machine], operation_count,
+                              release_times, processing_times,
+                              tail_times, sequence);
+            fix_machine(machine, sequence, operation_count);
             /* recompute r/q after each re-fix */
             compute_release();
             compute_tails();
@@ -372,67 +461,94 @@ static void shifting_bottleneck(void) {
 /* ── Extract start times from release times ─────────────────── */
 static int start_time[MAX_JOBS][MAX_MACHINES];
 
-static void extract_schedule(void) {
+static void extract_schedule(void)
+{
     compute_release();
-    for (int j = 0; j < num_jobs; j++)
-        for (int o = 0; o < num_machines; o++)
-            start_time[j][o] = r_time[j*num_machines+o];
+    for (int job = 0; job < num_jobs; job++)
+    {
+        for (int op = 0; op < num_machines; op++)
+        {
+            start_time[job][op] = r_time[job * num_machines + op];
+        }
+    }
 }
 
 /* ── File I/O ────────────────────────────────────────────────── */
-static void load_input(const char *fn) {
-    FILE *fp = fopen(fn, "r");
-    if (!fp) { perror(fn); exit(1); }
-    fscanf(fp, "%d %d", &num_jobs, &num_machines);
-    for (int j = 0; j < num_jobs; j++)
-        for (int o = 0; o < num_machines; o++)
-            fscanf(fp, "%d %d", &machine_id[j][o], &proc_time[j][o]);
-    fclose(fp);
+static void load_input(const char *file_path)
+{
+    FILE *input_file = fopen(file_path, "r");
+    if (!input_file)
+    {
+        perror(file_path);
+        exit(1);
+    }
+    fscanf(input_file, "%d %d", &num_jobs, &num_machines);
+    for (int job = 0; job < num_jobs; job++)
+    {
+        for (int op = 0; op < num_machines; op++)
+        {
+            fscanf(input_file, "%d %d", &machine_id[job][op], &proc_time[job][op]);
+        }
+    }
+    fclose(input_file);
 }
 
-static void write_output(const char *fn, int makespan) {
-    FILE *fp = fopen(fn, "w");
-    if (!fp) { perror(fn); exit(1); }
-    fprintf(fp, "%d\n", makespan);
-    for (int j = 0; j < num_jobs; j++) {
-        for (int o = 0; o < num_machines; o++) {
-            if (o) fprintf(fp, " ");
-            fprintf(fp, "%d", start_time[j][o]);
-        }
-        fprintf(fp, "\n");
+static void write_output(const char *file_path, int makespan)
+{
+    FILE *output_file = fopen(file_path, "w");
+    if (!output_file)
+    {
+        perror(file_path);
+        exit(1);
     }
-    fclose(fp);
+    fprintf(output_file, "%d\n", makespan);
+    for (int job = 0; job < num_jobs; job++)
+    {
+        for (int op = 0; op < num_machines; op++)
+        {
+            if (op)
+                fprintf(output_file, " ");
+            fprintf(output_file, "%d", start_time[job][op]);
+        }
+        fprintf(output_file, "\n");
+    }
+    fclose(output_file);
 }
 
 /* ── Build initial conjunctive graph ────────────────────────── */
-static void build_graph(void) {
+static void build_graph(void)
+{
     total_ops = num_jobs * num_machines;
-    memset(adj_cnt,  0, sizeof(adj_cnt));
+    memset(adj_cnt, 0, sizeof(adj_cnt));
     memset(pred_cnt, 0, sizeof(pred_cnt));
     memset(machine_fixed, 0, sizeof(machine_fixed));
     memset(ops_on_machine_cnt, 0, sizeof(ops_on_machine_cnt));
 
     /* Build machine membership */
     for (int j = 0; j < num_jobs; j++)
-        for (int o = 0; o < num_machines; o++) {
-            int m  = machine_id[j][o];
-            int op = j*num_machines+o;
+        for (int o = 0; o < num_machines; o++)
+        {
+            int m = machine_id[j][o];
+            int op = j * num_machines + o;
             ops_on_machine[m][ops_on_machine_cnt[m]++] = op;
         }
 
     /* Conjunctive arcs: SRC → first op, op[o] → op[o+1], last → SNK */
-    for (int j = 0; j < num_jobs; j++) {
-        add_arc(SRC, j*num_machines, 0);
-        for (int o = 0; o < num_machines-1; o++)
-            add_arc(j*num_machines+o, j*num_machines+o+1, proc_time[j][o]);
-        add_arc(j*num_machines+num_machines-1, SNK,
-                proc_time[j][num_machines-1]);
+    for (int j = 0; j < num_jobs; j++)
+    {
+        add_arc(SRC, j * num_machines, 0);
+        for (int o = 0; o < num_machines - 1; o++)
+            add_arc(j * num_machines + o, j * num_machines + o + 1, proc_time[j][o]);
+        add_arc(j * num_machines + num_machines - 1, SNK,
+                proc_time[j][num_machines - 1]);
     }
 }
 
 /* ── main ────────────────────────────────────────────────────── */
-int main(int argc, char *argv[]) {
-    if (argc < 3) {
+int main(int argc, char *argv[])
+{
+    if (argc < 3)
+    {
         fprintf(stderr, "Usage: %s <input> <output>\n", argv[0]);
         return 1;
     }
@@ -451,7 +567,7 @@ int main(int argc, char *argv[]) {
     int makespan = r_time[SNK];
     write_output(argv[2], makespan);
 
-    double ms = (t1.tv_sec-t0.tv_sec)*1000.0 + (t1.tv_nsec-t0.tv_nsec)/1e6;
+    double ms = (t1.tv_sec - t0.tv_sec) * 1000.0 + (t1.tv_nsec - t0.tv_nsec) / 1e6;
     printf("Makespan : %d\n", makespan);
     printf("Time     : %.3f ms\n", ms);
     return 0;
