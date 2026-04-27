@@ -1,0 +1,11 @@
+Benchmark: data/ft06.jss | 5 reps | 30s limit
+Config: 8 logical CPUs on omachine
+============================================================
+SEQ    | makespan=64    | avg_time=     0.161 ms | speedup= 1.000
+PC1    | makespan=64    | avg_time=     0.199 ms | speedup=.809
+PC2    | makespan=64    | avg_time=     0.274 ms | speedup=.587
+PC4    | makespan=64    | avg_time=     0.460 ms | speedup=.350
+PC8    | makespan=64    | avg_time=     5.135 ms | speedup=.031
+PC16   | makespan=64    | avg_time=     1.700 ms | speedup=.094
+PC32   | makespan=64    | avg_time=     2.833 ms | speedup=.056
+============================================================
