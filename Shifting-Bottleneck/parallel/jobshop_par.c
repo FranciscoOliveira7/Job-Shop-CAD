@@ -75,17 +75,31 @@ static int pred    [MAX_OPS+2][MAX_ADJ];
 static int pred_w  [MAX_OPS+2][MAX_ADJ];
 static int pred_cnt[MAX_OPS+2];
 
-static void add_arc(int u, int v, int w) {
-    adj [u][adj_cnt[u]]  = v; adj_w[u][adj_cnt[u]] = w; adj_cnt[u]++;
-    pred[v][pred_cnt[v]] = u; pred_w[v][pred_cnt[v]] = w; pred_cnt[v]++;
+static void add_arc(int from_node, int to_node, int weight) {
+    adj[from_node][adj_cnt[from_node]] = to_node;
+    adj_w[from_node][adj_cnt[from_node]] = weight;
+    adj_cnt[from_node]++;
+    pred[to_node][pred_cnt[to_node]] = from_node;
+    pred_w[to_node][pred_cnt[to_node]] = weight;
+    pred_cnt[to_node]++;
 }
-static void remove_arc(int u, int v) {
-    for (int k=0;k<adj_cnt[u];k++) if(adj[u][k]==v){
-        adj[u][k]=adj[u][adj_cnt[u]-1]; adj_w[u][k]=adj_w[u][adj_cnt[u]-1];
-        adj_cnt[u]--; break; }
-    for (int k=0;k<pred_cnt[v];k++) if(pred[v][k]==u){
-        pred[v][k]=pred[v][pred_cnt[v]-1]; pred_w[v][k]=pred_w[v][pred_cnt[v]-1];
-        pred_cnt[v]--; break; }
+static void remove_arc(int from_node, int to_node) {
+    for (int edge_index = 0; edge_index < adj_cnt[from_node]; edge_index++) {
+        if (adj[from_node][edge_index] == to_node) {
+            adj[from_node][edge_index] = adj[from_node][adj_cnt[from_node] - 1];
+            adj_w[from_node][edge_index] = adj_w[from_node][adj_cnt[from_node] - 1];
+            adj_cnt[from_node]--;
+            break;
+        }
+    }
+    for (int edge_index = 0; edge_index < pred_cnt[to_node]; edge_index++) {
+        if (pred[to_node][edge_index] == from_node) {
+            pred[to_node][edge_index] = pred[to_node][pred_cnt[to_node] - 1];
+            pred_w[to_node][edge_index] = pred_w[to_node][pred_cnt[to_node] - 1];
+            pred_cnt[to_node]--;
+            break;
+        }
+    }
 }
 
 /* ── Release / tail times (computed sequentially) ───────────── */
@@ -96,27 +110,35 @@ static int r_time[MAX_OPS+2];
 static int q_time[MAX_OPS+2];
 
 static void compute_release(void) {
-    for (int i=0;i<N;i++) r_time[i]=0;
+    for (int node = 0; node < N; node++) r_time[node] = 0;
     for (int pass=0;pass<N;pass++) {
-        int ch=0;
-        for (int u=0;u<N;u++)
-            for (int k=0;k<adj_cnt[u];k++) {
-                int v=adj[u][k], w=adj_w[u][k];
-                if (r_time[u]+w>r_time[v]) { r_time[v]=r_time[u]+w; ch=1; }
+        int changed = 0;
+        for (int from_node = 0; from_node < N; from_node++)
+            for (int edge_index = 0; edge_index < adj_cnt[from_node]; edge_index++) {
+                int to_node = adj[from_node][edge_index];
+                int edge_weight = adj_w[from_node][edge_index];
+                if (r_time[from_node] + edge_weight > r_time[to_node]) {
+                    r_time[to_node] = r_time[from_node] + edge_weight;
+                    changed = 1;
+                }
             }
-        if (!ch) break;
+        if (!changed) break;
     }
 }
 static void compute_tails(void) {
-    for (int i=0;i<N;i++) q_time[i]=0;
+    for (int node = 0; node < N; node++) q_time[node] = 0;
     for (int pass=0;pass<N;pass++) {
-        int ch=0;
-        for (int v=0;v<N;v++)
-            for (int k=0;k<pred_cnt[v];k++) {
-                int u=pred[v][k], w=pred_w[v][k];
-                if (w+q_time[v]>q_time[u]) { q_time[u]=w+q_time[v]; ch=1; }
+        int changed = 0;
+        for (int to_node = 0; to_node < N; to_node++)
+            for (int edge_index = 0; edge_index < pred_cnt[to_node]; edge_index++) {
+                int from_node = pred[to_node][edge_index];
+                int edge_weight = pred_w[to_node][edge_index];
+                if (edge_weight + q_time[to_node] > q_time[from_node]) {
+                    q_time[from_node] = edge_weight + q_time[to_node];
+                    changed = 1;
+                }
             }
-        if (!ch) break;
+        if (!changed) break;
     }
 }
 
@@ -141,39 +163,57 @@ static int schrage(const int *ops, int n,
                    HItem *heap) {   /* heap is caller-provided (thread-local) */
     static __thread int done[MAX_JOBS];
     for (int i=0;i<n;i++) done[i]=0;
-    int hsz=0;
+    int heap_size = 0;
 
-    int min_r=INF;
-    for (int i=0;i<n;i++) if(r[i]<min_r) min_r=r[i];
-    int t=min_r, sidx=0, cmax=0;
+    int min_release = INF;
+    for (int i = 0; i < n; i++) if (r[i] < min_release) min_release = r[i];
+    int current_time = min_release;
+    int sequence_index = 0;
+    int cmax = 0;
 
-    while (sidx<n) {
+    while (sequence_index < n) {
         for (int i=0;i<n;i++) {
-            if (!done[i] && r[i]<=t) {
-                HItem it={i,q[i],r[i],p[i]};
-                int pos=hsz++;  heap[pos]=it;
-                while(pos>0){ int par=(pos-1)/2;
-                    if(heap[par].q<heap[pos].q){
-                        HItem tmp=heap[par]; heap[par]=heap[pos]; heap[pos]=tmp;
-                        pos=par;} else break; }
+            if (!done[i] && r[i] <= current_time) {
+                HItem item = {i, q[i], r[i], p[i]};
+                int insert_index = heap_size++;
+                heap[insert_index] = item;
+                while (insert_index > 0) {
+                    int parent_index = (insert_index - 1) / 2;
+                    if (heap[parent_index].q < heap[insert_index].q) {
+                        HItem tmp = heap[parent_index];
+                        heap[parent_index] = heap[insert_index];
+                        heap[insert_index] = tmp;
+                        insert_index = parent_index;
+                    } else break;
+                }
                 done[i]=2;
             }
         }
-        if (!hsz) {
-            int nxt=INF;
-            for (int i=0;i<n;i++) if(!done[i]&&r[i]<nxt) nxt=r[i];
-            t=nxt; continue;
+        if (!heap_size) {
+            int next_release = INF;
+            for (int i = 0; i < n; i++) if (!done[i] && r[i] < next_release) next_release = r[i];
+            current_time = next_release;
+            continue;
         }
-        HItem cur=heap[0]; heap[0]=heap[--hsz];
-        int i=0;
-        while(1){ int l=2*i+1,r2=2*i+2,best=i;
-            if(l<hsz&&heap[l].q>heap[best].q) best=l;
-            if(r2<hsz&&heap[r2].q>heap[best].q) best=r2;
-            if(best==i) break;
-            HItem tmp=heap[i]; heap[i]=heap[best]; heap[best]=tmp; i=best; }
-        seq[sidx++]=cur.op;
-        t+=cur.p;
-        int c=t+cur.q; if(c>cmax) cmax=c;
+        HItem current_item = heap[0];
+        heap[0] = heap[--heap_size];
+        int current_index = 0;
+        while (1) {
+            int left_child = 2 * current_index + 1;
+            int right_child = 2 * current_index + 2;
+            int best_index = current_index;
+            if (left_child < heap_size && heap[left_child].q > heap[best_index].q) best_index = left_child;
+            if (right_child < heap_size && heap[right_child].q > heap[best_index].q) best_index = right_child;
+            if (best_index == current_index) break;
+            HItem tmp = heap[current_index];
+            heap[current_index] = heap[best_index];
+            heap[best_index] = tmp;
+            current_index = best_index;
+        }
+        seq[sequence_index++] = current_item.op;
+        current_time += current_item.p;
+        int completion_with_tail = current_time + current_item.q;
+        if (completion_with_tail > cmax) cmax = completion_with_tail;
     }
     return cmax;
 }
@@ -183,25 +223,29 @@ static int schrage(const int *ops, int n,
 static int machine_fixed[MAX_MACHINES];
 static int machine_seq  [MAX_MACHINES][MAX_JOBS];
 
-static void fix_machine(int m, const int *seq, int n) {
-    for (int i=0;i<n-1;i++) remove_arc(machine_seq[m][i], machine_seq[m][i+1]);
-    for (int k=0;k<n-1;k++) {
-        int u=ops_on_machine[m][seq[k]], v=ops_on_machine[m][seq[k+1]];
-        int w=0;
-        for (int j=0;j<num_jobs;j++)
-            for (int o=0;o<num_machines;o++)
-                if (j*num_machines+o==u) w=proc_time[j][o];
-        add_arc(u,v,w);
-        machine_seq[m][k]=u; machine_seq[m][k+1]=v;
+static void fix_machine(int machine, const int *sequence, int operation_count) {
+    for (int i = 0; i < operation_count - 1; i++) {
+        remove_arc(machine_seq[machine][i], machine_seq[machine][i + 1]);
     }
-    machine_fixed[m]=1;
+    for (int order_index = 0; order_index < operation_count - 1; order_index++) {
+        int from_node = ops_on_machine[machine][sequence[order_index]];
+        int to_node = ops_on_machine[machine][sequence[order_index + 1]];
+        int processing_time = 0;
+        for (int job = 0; job < num_jobs; job++)
+            for (int op = 0; op < num_machines; op++)
+                if (job * num_machines + op == from_node) processing_time = proc_time[job][op];
+        add_arc(from_node, to_node, processing_time);
+        machine_seq[machine][order_index] = from_node;
+        machine_seq[machine][order_index + 1] = to_node;
+    }
+    machine_fixed[machine] = 1;
 }
 
 /* ── Parallel Shifting Bottleneck ───────────────────────────── */
 static void shifting_bottleneck_parallel(void) {
-    int remaining = num_machines;
+    int remaining_machines = num_machines;
 
-    while (remaining > 0) {
+    while (remaining_machines > 0) {
 
         /* ── Compute r/q sequentially (graph may have changed) ── */
         compute_release();
@@ -251,22 +295,23 @@ static void shifting_bottleneck_parallel(void) {
         /* Implicit OpenMP barrier here — all cmax_result[] written */
 
         /* ── Sequential: select bottleneck & fix ── */
-        int bottleneck = -1, best_cmax = -1;
+        int bottleneck_machine = -1;
+        int best_cmax = -1;
         for (int m = 0; m < num_machines; m++)
             if (cmax_result[m] > best_cmax) {
                 best_cmax = cmax_result[m];
-                bottleneck = m;
+                bottleneck_machine = m;
             }
 
-        fix_machine(bottleneck, seq_result[bottleneck],
-                    ops_on_machine_cnt[bottleneck]);
-        remaining--;
+        fix_machine(bottleneck_machine, seq_result[bottleneck_machine],
+                    ops_on_machine_cnt[bottleneck_machine]);
+        remaining_machines--;
 
         /* ── Re-optimise fixed machines (sequential per fix) ── */
         compute_release();
         compute_tails();
         for (int m = 0; m < num_machines; m++) {
-            if (!machine_fixed[m] || m == bottleneck) continue;
+            if (!machine_fixed[m] || m == bottleneck_machine) continue;
             int n = ops_on_machine_cnt[m];
             int r[MAX_JOBS], p[MAX_JOBS], q[MAX_JOBS], seq[MAX_JOBS];
             HItem heap[MAX_JOBS];
@@ -295,25 +340,28 @@ static void extract_schedule(void) {
             start_time[j][o] = r_time[j*num_machines+o];
 }
 
-static void load_input(const char *fn) {
-    FILE *fp=fopen(fn,"r");
-    if (!fp){perror(fn);exit(1);}
-    fscanf(fp,"%d %d",&num_jobs,&num_machines);
-    for (int j=0;j<num_jobs;j++)
-        for (int o=0;o<num_machines;o++)
-            fscanf(fp,"%d %d",&machine_id[j][o],&proc_time[j][o]);
-    fclose(fp);
+static void load_input(const char *file_path) {
+    FILE *input_file = fopen(file_path, "r");
+    if (!input_file) { perror(file_path); exit(1); }
+    fscanf(input_file, "%d %d", &num_jobs, &num_machines);
+    for (int job = 0; job < num_jobs; job++)
+        for (int op = 0; op < num_machines; op++)
+            fscanf(input_file, "%d %d", &machine_id[job][op], &proc_time[job][op]);
+    fclose(input_file);
 }
 
-static void write_output(const char *fn, int makespan) {
-    FILE *fp=fopen(fn,"w");
-    if (!fp){perror(fn);exit(1);}
-    fprintf(fp,"%d\n",makespan);
-    for (int j=0;j<num_jobs;j++){
-        for (int o=0;o<num_machines;o++){if(o)fprintf(fp," ");fprintf(fp,"%d",start_time[j][o]);}
-        fprintf(fp,"\n");
+static void write_output(const char *file_path, int makespan) {
+    FILE *output_file = fopen(file_path, "w");
+    if (!output_file) { perror(file_path); exit(1); }
+    fprintf(output_file, "%d\n", makespan);
+    for (int job = 0; job < num_jobs; job++) {
+        for (int op = 0; op < num_machines; op++) {
+            if (op) fprintf(output_file, " ");
+            fprintf(output_file, "%d", start_time[job][op]);
+        }
+        fprintf(output_file, "\n");
     }
-    fclose(fp);
+    fclose(output_file);
 }
 
 static void build_graph(void) {
