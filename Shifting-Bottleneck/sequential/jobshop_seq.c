@@ -274,6 +274,8 @@ static int solve_one_machine(const int *ops, int operation_count,
                              const int *release_times, const int *processing_times,
                              const int *tail_times, int *sequence)
 {
+    (void)ops;
+
     /* unscheduled flags */
     static int done[MAX_JOBS];
     for (int i = 0; i < operation_count; i++)
