@@ -178,6 +178,23 @@ typedef struct
     int op, q, r, p;
 } HItem;
 
+static int operation_time(int op)
+{
+    return proc_time[op / num_machines][op % num_machines];
+}
+
+static void build_machine_problem(int machine, int *r, int *p, int *q)
+{
+    int n = ops_on_machine_cnt[machine];
+    for (int i = 0; i < n; i++)
+    {
+        int op = ops_on_machine[machine][i];
+        r[i] = r_time[op];
+        p[i] = operation_time(op);
+        q[i] = q_time[op];
+    }
+}
+
 static int schrage(const int *ops, int n,
                    const int *r, const int *p, const int *q,
                    int *seq,
@@ -274,19 +291,13 @@ static void fix_machine(int machine, const int *sequence, int operation_count)
     {
         int from_node = ops_on_machine[machine][sequence[order_index]];
         int to_node = ops_on_machine[machine][sequence[order_index + 1]];
-        int processing_time = 0;
-        for (int job = 0; job < num_jobs; job++)
-            for (int op = 0; op < num_machines; op++)
-                if (job * num_machines + op == from_node)
-                    processing_time = proc_time[job][op];
-        add_arc(from_node, to_node, processing_time);
+        add_arc(from_node, to_node, operation_time(from_node));
         machine_seq[machine][order_index] = from_node;
         machine_seq[machine][order_index + 1] = to_node;
     }
     machine_fixed[machine] = 1;
 }
 
-/* ── Parallel Shifting Bottleneck ───────────────────────────── */
 static void shifting_bottleneck_parallel(void)
 {
     int remaining_machines = num_machines;
@@ -298,18 +309,9 @@ static void shifting_bottleneck_parallel(void)
         compute_release();
         compute_tails();
 
-/* ── PARALLEL REGION: evaluate each unscheduled machine ──
- * Each thread i processes machine m = its loop iteration.
- * Reads: r_time[], q_time[], ops_on_machine[][], proc_time[][]
- *        (all read-only in this region)
- * Writes: cmax_result[m], seq_result[m][]
- *         (each thread writes to its own machine slot — no race)
- * Thread-local: r[], p[], q[], seq[], heap[]
- */
-#pragma omp parallel for schedule(static) default(none)             \
-    shared(machine_fixed, ops_on_machine,                           \
-               ops_on_machine_cnt, proc_time, machine_id, num_jobs, \
-               num_machines, r_time, q_time,                        \
+#pragma omp parallel for schedule(static) default(none)          \
+    shared(machine_fixed, ops_on_machine,                        \
+               ops_on_machine_cnt, num_machines, r_time, q_time, \
                cmax_result, seq_result)
         for (int m = 0; m < num_machines; m++)
         {
@@ -318,34 +320,17 @@ static void shifting_bottleneck_parallel(void)
                 cmax_result[m] = -1;
                 continue;
             }
-            /* Thread-local arrays — stack-allocated, no sharing */
             int r[MAX_JOBS], p[MAX_JOBS], q[MAX_JOBS], seq[MAX_JOBS];
             HItem heap[MAX_JOBS];
 
             int n = ops_on_machine_cnt[m];
-            /* Fill r/p/q from read-only shared arrays */
-            for (int i = 0; i < n; i++)
-            {
-                int op = ops_on_machine[m][i];
-                int ptime = 0;
-                for (int j = 0; j < num_jobs; j++)
-                    for (int o = 0; o < num_machines; o++)
-                        if (j * num_machines + o == op)
-                            ptime = proc_time[j][o];
-                r[i] = r_time[op];
-                p[i] = ptime;
-                q[i] = q_time[op];
-            }
-            /* Solve 1-machine subproblem (thread-local computation) */
+            build_machine_problem(m, r, p, q);
             cmax_result[m] = schrage(ops_on_machine[m], n,
                                      r, p, q, seq, heap);
-            /* Write sequence to per-machine slot (no race) */
             for (int i = 0; i < n; i++)
                 seq_result[m][i] = seq[i];
         }
-        /* Implicit OpenMP barrier here — all cmax_result[] written */
 
-        /* ── Sequential: select bottleneck & fix ── */
         int bottleneck_machine = -1;
         int best_cmax = -1;
         for (int m = 0; m < num_machines; m++)
@@ -369,17 +354,7 @@ static void shifting_bottleneck_parallel(void)
             int n = ops_on_machine_cnt[m];
             int r[MAX_JOBS], p[MAX_JOBS], q[MAX_JOBS], seq[MAX_JOBS];
             HItem heap[MAX_JOBS];
-            for (int i = 0; i < n; i++)
-            {
-                int op = ops_on_machine[m][i], ptime = 0;
-                for (int j = 0; j < num_jobs; j++)
-                    for (int o = 0; o < num_machines; o++)
-                        if (j * num_machines + o == op)
-                            ptime = proc_time[j][o];
-                r[i] = r_time[op];
-                p[i] = ptime;
-                q[i] = q_time[op];
-            }
+            build_machine_problem(m, r, p, q);
             schrage(ops_on_machine[m], n, r, p, q, seq, heap);
             fix_machine(m, seq, n);
             compute_release();
