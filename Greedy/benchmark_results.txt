@@ -6,58 +6,58 @@ Machine: omachine with 8 logical CPUs
 ============================================================
 
 === Testing: benchmark_100x100 (101 lines) ===
-SEQ  | benchmark_100x100    | makespan=1999  | avg_run=  4.301604 ms | runs=13949 | total_time=60 s
-PAR  | benchmark_100x100    | T=1  | makespan=1999  | avg_run=  7.768068 ms | speedup=0.554 | runs=7724
-PAR  | benchmark_100x100    | T=2  | makespan=2002  | avg_run= 12.363559 ms | speedup=0.348 | runs=4853
-PAR  | benchmark_100x100    | T=4  | makespan=2003  | avg_run= 18.935124 ms | speedup=0.227 | runs=3172
-PAR  | benchmark_100x100    | T=8  | makespan=2047  | avg_run= 42.683762 ms | speedup=0.101 | runs=1406
-PAR  | benchmark_100x100    | T=16 | makespan=2076  | avg_run= 53.447327 ms | speedup=0.080 | runs=1123
-PAR  | benchmark_100x100    | T=32 | makespan=2118  | avg_run= 91.196190 ms | speedup=0.047 | runs=659
+SEQ  | benchmark_100x100    | makespan=1999  | avg_run=  4.496436 ms | runs=1112 | total_time=5 s
+PAR  | benchmark_100x100    | T=1  | makespan=1999  | avg_run=  7.396870 ms | speedup=0.608 | runs=676
+PAR  | benchmark_100x100    | T=2  | makespan=1985  | avg_run= 11.154781 ms | speedup=0.403 | runs=449
+PAR  | benchmark_100x100    | T=4  | makespan=2041  | avg_run= 19.701936 ms | speedup=0.228 | runs=254
+PAR  | benchmark_100x100    | T=8  | makespan=1985  | avg_run= 42.299189 ms | speedup=0.106 | runs=119
+PAR  | benchmark_100x100    | T=16 | makespan=2082  | avg_run= 49.406174 ms | speedup=0.091 | runs=102
+PAR  | benchmark_100x100    | T=32 | makespan=2069  | avg_run= 98.417797 ms | speedup=0.046 | runs=51
 
 === Testing: benchmark_200x200 (201 lines) ===
-SEQ  | benchmark_200x200    | makespan=4167  | avg_run= 11.457152 ms | runs=5237 | total_time=60 s
-PAR  | benchmark_200x200    | T=1  | makespan=4167  | avg_run= 22.021640 ms | speedup=0.520 | runs=2725
-PAR  | benchmark_200x200    | T=2  | makespan=4195  | avg_run= 40.175678 ms | speedup=0.285 | runs=1494
-PAR  | benchmark_200x200    | T=4  | makespan=4141  | avg_run= 64.196177 ms | speedup=0.178 | runs=935
-PAR  | benchmark_200x200    | T=8  | makespan=4138  | avg_run=124.269554 ms | speedup=0.092 | runs=483
-PAR  | benchmark_200x200    | T=16 | makespan=4327  | avg_run=115.243215 ms | speedup=0.099 | runs=521
-PAR  | benchmark_200x200    | T=32 | makespan=4259  | avg_run=193.801253 ms | speedup=0.059 | runs=310
+SEQ  | benchmark_200x200    | makespan=4167  | avg_run= 12.407573 ms | runs=404 | total_time=5 s
+PAR  | benchmark_200x200    | T=1  | makespan=4167  | avg_run= 32.591790 ms | speedup=0.381 | runs=154
+PAR  | benchmark_200x200    | T=2  | makespan=4169  | avg_run= 44.817144 ms | speedup=0.277 | runs=112
+PAR  | benchmark_200x200    | T=4  | makespan=4114  | avg_run= 65.836578 ms | speedup=0.188 | runs=76
+PAR  | benchmark_200x200    | T=8  | makespan=4170  | avg_run=294.305120 ms | speedup=0.042 | runs=19
+PAR  | benchmark_200x200    | T=16 | makespan=4417  | avg_run=164.525060 ms | speedup=0.075 | runs=31
+PAR  | benchmark_200x200    | T=32 | makespan=4237  | avg_run=258.674142 ms | speedup=0.048 | runs=20
 
 === Testing: benchmark_large_50x50 (51 lines) ===
-SEQ  | benchmark_large_50x50 | makespan=989   | avg_run=  2.912327 ms | runs=20603 | total_time=60 s
-PAR  | benchmark_large_50x50 | T=1  | makespan=989   | avg_run=  4.040413 ms | speedup=0.721 | runs=14850
-PAR  | benchmark_large_50x50 | T=2  | makespan=994   | avg_run=  5.758840 ms | speedup=0.506 | runs=10419
-PAR  | benchmark_large_50x50 | T=4  | makespan=1003  | avg_run=  7.467908 ms | speedup=0.390 | runs=8035
-PAR  | benchmark_large_50x50 | T=8  | makespan=1091  | avg_run=1540.784363 ms | speedup=0.002 | runs=39
-PAR  | benchmark_large_50x50 | T=16 | makespan=993   | avg_run= 31.618851 ms | speedup=0.092 | runs=1898
-PAR  | benchmark_large_50x50 | T=32 | makespan=990   | avg_run= 48.434007 ms | speedup=0.060 | runs=1239
+SEQ  | benchmark_large_50x50 | makespan=989   | avg_run=  3.732150 ms | runs=1340 | total_time=5 s
+PAR  | benchmark_large_50x50 | T=1  | makespan=989   | avg_run=  4.674267 ms | speedup=0.798 | runs=1070
+PAR  | benchmark_large_50x50 | T=2  | makespan=995   | avg_run=  7.421376 ms | speedup=0.503 | runs=674
+PAR  | benchmark_large_50x50 | T=4  | makespan=957   | avg_run=  9.894613 ms | speedup=0.377 | runs=506
+PAR  | benchmark_large_50x50 | T=8  | makespan=1042  | avg_run=142.944250 ms | speedup=0.026 | runs=35
+PAR  | benchmark_large_50x50 | T=16 | makespan=1074  | avg_run= 33.168520 ms | speedup=0.113 | runs=151
+PAR  | benchmark_large_50x50 | T=32 | makespan=999   | avg_run= 79.584462 ms | speedup=0.047 | runs=63
 
 === Testing: benchmark_test (16 lines) ===
-SEQ  | benchmark_test       | makespan=261   | avg_run=  2.608771 ms | runs=23000 | total_time=60 s
-PAR  | benchmark_test       | T=1  | makespan=261   | avg_run=  2.697115 ms | speedup=0.967 | runs=22246
-PAR  | benchmark_test       | T=2  | makespan=283   | avg_run=  2.891569 ms | speedup=0.902 | runs=20750
-PAR  | benchmark_test       | T=4  | makespan=304   | avg_run=  3.057989 ms | speedup=0.853 | runs=19621
-PAR  | benchmark_test       | T=8  | makespan=295   | avg_run= 14.797899 ms | speedup=0.176 | runs=4056
-PAR  | benchmark_test       | T=16 | makespan=288   | avg_run=  9.259719 ms | speedup=0.282 | runs=6480
-PAR  | benchmark_test       | T=32 | makespan=316   | avg_run= 17.007626 ms | speedup=0.153 | runs=3529
+SEQ  | benchmark_test       | makespan=261   | avg_run=  3.645413 ms | runs=1372 | total_time=5 s
+PAR  | benchmark_test       | T=1  | makespan=261   | avg_run=  3.503400 ms | speedup=1.041 | runs=1428
+PAR  | benchmark_test       | T=2  | makespan=261   | avg_run=  4.230495 ms | speedup=0.862 | runs=1182
+PAR  | benchmark_test       | T=4  | makespan=291   | avg_run=  4.681840 ms | speedup=0.779 | runs=1068
+PAR  | benchmark_test       | T=8  | makespan=280   | avg_run= 62.656351 ms | speedup=0.058 | runs=80
+PAR  | benchmark_test       | T=16 | makespan=297   | avg_run= 12.408424 ms | speedup=0.294 | runs=404
+PAR  | benchmark_test       | T=32 | makespan=280   | avg_run= 24.113827 ms | speedup=0.151 | runs=209
 
 === Testing: ft06 (7 lines) ===
-SEQ  | ft06                 | makespan=60    | avg_run=  2.398226 ms | runs=25019 | total_time=60 s
-PAR  | ft06                 | T=1  | makespan=60    | avg_run=  2.537500 ms | speedup=0.945 | runs=23646
-PAR  | ft06                 | T=2  | makespan=60    | avg_run=  2.718749 ms | speedup=0.882 | runs=22069
-PAR  | ft06                 | T=4  | makespan=60    | avg_run=  2.758439 ms | speedup=0.869 | runs=21752
-PAR  | ft06                 | T=8  | makespan=65    | avg_run= 13.365807 ms | speedup=0.179 | runs=4490
-PAR  | ft06                 | T=16 | makespan=67    | avg_run=  5.952245 ms | speedup=0.403 | runs=10081
-PAR  | ft06                 | T=32 | makespan=70    | avg_run=  9.680087 ms | speedup=0.248 | runs=6199
+SEQ  | ft06                 | makespan=60    | avg_run=  3.424945 ms | runs=1460 | total_time=5 s
+PAR  | ft06                 | T=1  | makespan=60    | avg_run=  4.150713 ms | speedup=0.825 | runs=1205
+PAR  | ft06                 | T=2  | makespan=60    | avg_run=  4.251333 ms | speedup=0.806 | runs=1180
+PAR  | ft06                 | T=4  | makespan=71    | avg_run=  3.798747 ms | speedup=0.902 | runs=1317
+PAR  | ft06                 | T=8  | makespan=62    | avg_run= 34.431787 ms | speedup=0.099 | runs=146
+PAR  | ft06                 | T=16 | makespan=66    | avg_run=  9.047728 ms | speedup=0.379 | runs=553
+PAR  | ft06                 | T=32 | makespan=64    | avg_run= 13.528218 ms | speedup=0.253 | runs=370
 
 === Testing: gg03 (4 lines) ===
-SEQ  | gg03                 | makespan=11    | avg_run=  2.372060 ms | runs=25295 | total_time=60 s
-PAR  | gg03                 | T=1  | makespan=11    | avg_run=  2.490838 ms | speedup=0.952 | runs=24089
-PAR  | gg03                 | T=2  | makespan=11    | avg_run=  2.641348 ms | speedup=0.898 | runs=22716
-PAR  | gg03                 | T=4  | makespan=11    | avg_run=  2.688925 ms | speedup=0.882 | runs=22314
-PAR  | gg03                 | T=8  | makespan=11    | avg_run= 14.414160 ms | speedup=0.165 | runs=4165
-PAR  | gg03                 | T=16 | makespan=11    | avg_run=  5.276828 ms | speedup=0.450 | runs=11371
-PAR  | gg03                 | T=32 | makespan=11    | avg_run=  7.664906 ms | speedup=0.309 | runs=7828
+SEQ  | gg03                 | makespan=11    | avg_run=  3.085191 ms | runs=1621 | total_time=5 s
+PAR  | gg03                 | T=1  | makespan=11    | avg_run=  3.610346 ms | speedup=0.855 | runs=1385
+PAR  | gg03                 | T=2  | makespan=12    | avg_run=  4.130139 ms | speedup=0.747 | runs=1218
+PAR  | gg03                 | T=4  | makespan=11    | avg_run=  3.637515 ms | speedup=0.848 | runs=1375
+PAR  | gg03                 | T=8  | makespan=12    | avg_run= 32.482325 ms | speedup=0.095 | runs=154
+PAR  | gg03                 | T=16 | makespan=12    | avg_run=  7.348700 ms | speedup=0.420 | runs=681
+PAR  | gg03                 | T=32 | makespan=11    | avg_run=  9.135802 ms | speedup=0.338 | runs=548
 ============================================================
 Results saved to: /home/Omachine/docs/GitHub/Job-Shop-CAD/Greedy/benchmark_results.txt
 

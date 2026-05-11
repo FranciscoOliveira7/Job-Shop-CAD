@@ -45,7 +45,7 @@ run_seq_case() {
     local label=$2
     local total=0
     local makespan=0
-    local target_time_ns=$((60 * 1000000000))  # 60 seconds in nanoseconds
+    local target_time_ns=$((5 * 1000000000))  # 60 seconds in nanoseconds
 
     local start_ns=$(date +%s%N)
     local elapsed_ns=0
@@ -71,7 +71,7 @@ run_par_case() {
     local input_file=$1
     local label=$2
     local seq_time=$3
-    local target_time_ns=$((60 * 1000000000))  # 60 seconds in nanoseconds
+    local target_time_ns=$((5 * 1000000000))  # 60 seconds in nanoseconds
 
     for T in "${THREADS[@]}"; do
         local total=0
