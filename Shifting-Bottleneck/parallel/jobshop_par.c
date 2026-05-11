@@ -52,8 +52,8 @@
 #include <limits.h>
 #include <omp.h>
 
-#define MAX_JOBS 30
-#define MAX_MACHINES 30
+#define MAX_JOBS 200
+#define MAX_MACHINES 200
 #define MAX_OPS (MAX_JOBS * MAX_MACHINES)
 #define MAX_ADJ 64
 #define INF 0x3fffffff
@@ -117,8 +117,52 @@ static int q_time[MAX_OPS + 2];
 
 static void compute_release(void)
 {
+    static int indeg[MAX_OPS + 2];
+    static int topo[MAX_OPS + 2];
+    static int queue[MAX_OPS + 2];
+
     for (int node = 0; node < N; node++)
+    {
         r_time[node] = 0;
+        indeg[node] = pred_cnt[node];
+    }
+
+    int qh = 0, qt = 0, topo_count = 0;
+    for (int node = 0; node < N; node++)
+    {
+        if (indeg[node] == 0)
+            queue[qt++] = node;
+    }
+
+    while (qh < qt)
+    {
+        int from_node = queue[qh++];
+        topo[topo_count++] = from_node;
+        for (int edge_index = 0; edge_index < adj_cnt[from_node]; edge_index++)
+        {
+            int to_node = adj[from_node][edge_index];
+            if (--indeg[to_node] == 0)
+                queue[qt++] = to_node;
+        }
+    }
+
+    if (topo_count == N)
+    {
+        for (int t = 0; t < topo_count; t++)
+        {
+            int from_node = topo[t];
+            for (int edge_index = 0; edge_index < adj_cnt[from_node]; edge_index++)
+            {
+                int to_node = adj[from_node][edge_index];
+                int edge_weight = adj_w[from_node][edge_index];
+                if (r_time[from_node] + edge_weight > r_time[to_node])
+                    r_time[to_node] = r_time[from_node] + edge_weight;
+            }
+        }
+        return;
+    }
+
+    /* Fallback if graph is not DAG (should not normally happen). */
     for (int pass = 0; pass < N; pass++)
     {
         int changed = 0;
@@ -139,8 +183,52 @@ static void compute_release(void)
 }
 static void compute_tails(void)
 {
+    static int indeg[MAX_OPS + 2];
+    static int topo[MAX_OPS + 2];
+    static int queue[MAX_OPS + 2];
+
     for (int node = 0; node < N; node++)
+    {
         q_time[node] = 0;
+        indeg[node] = pred_cnt[node];
+    }
+
+    int qh = 0, qt = 0, topo_count = 0;
+    for (int node = 0; node < N; node++)
+    {
+        if (indeg[node] == 0)
+            queue[qt++] = node;
+    }
+
+    while (qh < qt)
+    {
+        int from_node = queue[qh++];
+        topo[topo_count++] = from_node;
+        for (int edge_index = 0; edge_index < adj_cnt[from_node]; edge_index++)
+        {
+            int to_node = adj[from_node][edge_index];
+            if (--indeg[to_node] == 0)
+                queue[qt++] = to_node;
+        }
+    }
+
+    if (topo_count == N)
+    {
+        for (int t = topo_count - 1; t >= 0; t--)
+        {
+            int from_node = topo[t];
+            for (int edge_index = 0; edge_index < adj_cnt[from_node]; edge_index++)
+            {
+                int to_node = adj[from_node][edge_index];
+                int edge_weight = adj_w[from_node][edge_index];
+                if (edge_weight + q_time[to_node] > q_time[from_node])
+                    q_time[from_node] = edge_weight + q_time[to_node];
+            }
+        }
+        return;
+    }
+
+    /* Fallback if graph is not DAG (should not normally happen). */
     for (int pass = 0; pass < N; pass++)
     {
         int changed = 0;
@@ -287,13 +375,17 @@ static void fix_machine(int machine, const int *sequence, int operation_count)
     {
         remove_arc(machine_seq[machine][i], machine_seq[machine][i + 1]);
     }
+    /* Store the sequence in machine_seq for future reference */
+    for (int order_index = 0; order_index < operation_count; order_index++)
+    {
+        machine_seq[machine][order_index] = ops_on_machine[machine][sequence[order_index]];
+    }
+    /* Add new arcs according to sequence */
     for (int order_index = 0; order_index < operation_count - 1; order_index++)
     {
-        int from_node = ops_on_machine[machine][sequence[order_index]];
-        int to_node = ops_on_machine[machine][sequence[order_index + 1]];
+        int from_node = machine_seq[machine][order_index];
+        int to_node = machine_seq[machine][order_index + 1];
         add_arc(from_node, to_node, operation_time(from_node));
-        machine_seq[machine][order_index] = from_node;
-        machine_seq[machine][order_index + 1] = to_node;
     }
     machine_fixed[machine] = 1;
 }
@@ -304,7 +396,6 @@ static void shifting_bottleneck_parallel(void)
 
     while (remaining_machines > 0)
     {
-
         /* ── Compute r/q sequentially (graph may have changed) ── */
         compute_release();
         compute_tails();

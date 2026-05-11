@@ -1,0 +1,10 @@
+Quick Benchmark Test (target: 10s per config)
+File: data/benchmark_200x200.jss
+============================================================
+
+SEQ | makespan=4167 | avg=17.223ms | runs=581 | time=10s
+PC1 | makespan=4167 | avg=37.274ms | runs=269 | time=10s
+PC8 | makespan=4193 | avg=872.926ms | runs=12 | time=10s
+PC32 | makespan=4223 | avg=411.442ms | runs=25 | time=10s
+============================================================
+Results saved to: /home/Omachine/docs/GitHub/Job-Shop-CAD/Greedy/quick_benchmark_results.txt

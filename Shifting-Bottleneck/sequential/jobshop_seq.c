@@ -39,8 +39,8 @@
 #include <time.h>
 #include <limits.h>
 
-#define MAX_JOBS 30
-#define MAX_MACHINES 30
+#define MAX_JOBS 200
+#define MAX_MACHINES 200
 #define MAX_OPS (MAX_JOBS * MAX_MACHINES) /* total operations */
 #define INF 0x3fffffff
 
@@ -135,10 +135,52 @@ static int q_time[MAX_OPS + 2]; /* tail times (longest path to SNK) */
 
 static void compute_release(void)
 {
+    static int indeg[MAX_OPS + 2];
+    static int topo[MAX_OPS + 2];
+    static int queue[MAX_OPS + 2];
+
     for (int node = 0; node < N; node++)
+    {
         r_time[node] = 0;
-    r_time[SRC] = 0;
-    /* Bellman-Ford style: N-1 relaxations */
+        indeg[node] = pred_cnt[node];
+    }
+
+    int qh = 0, qt = 0, topo_count = 0;
+    for (int node = 0; node < N; node++)
+    {
+        if (indeg[node] == 0)
+            queue[qt++] = node;
+    }
+
+    while (qh < qt)
+    {
+        int from_node = queue[qh++];
+        topo[topo_count++] = from_node;
+        for (int edge_index = 0; edge_index < adj_cnt[from_node]; edge_index++)
+        {
+            int to_node = adj[from_node][edge_index];
+            if (--indeg[to_node] == 0)
+                queue[qt++] = to_node;
+        }
+    }
+
+    if (topo_count == N)
+    {
+        for (int t = 0; t < topo_count; t++)
+        {
+            int from_node = topo[t];
+            for (int edge_index = 0; edge_index < adj_cnt[from_node]; edge_index++)
+            {
+                int to_node = adj[from_node][edge_index];
+                int edge_weight = adj_w[from_node][edge_index];
+                if (r_time[from_node] + edge_weight > r_time[to_node])
+                    r_time[to_node] = r_time[from_node] + edge_weight;
+            }
+        }
+        return;
+    }
+
+    /* Fallback if graph is not DAG (should not normally happen). */
     for (int pass = 0; pass < N; pass++)
     {
         int changed = 0;
@@ -162,9 +204,52 @@ static void compute_release(void)
 
 static void compute_tails(void)
 {
-    /* q[u] = longest path from u to SNK (not including proc_time[u]) */
+    static int indeg[MAX_OPS + 2];
+    static int topo[MAX_OPS + 2];
+    static int queue[MAX_OPS + 2];
+
     for (int node = 0; node < N; node++)
+    {
         q_time[node] = 0;
+        indeg[node] = pred_cnt[node];
+    }
+
+    int qh = 0, qt = 0, topo_count = 0;
+    for (int node = 0; node < N; node++)
+    {
+        if (indeg[node] == 0)
+            queue[qt++] = node;
+    }
+
+    while (qh < qt)
+    {
+        int from_node = queue[qh++];
+        topo[topo_count++] = from_node;
+        for (int edge_index = 0; edge_index < adj_cnt[from_node]; edge_index++)
+        {
+            int to_node = adj[from_node][edge_index];
+            if (--indeg[to_node] == 0)
+                queue[qt++] = to_node;
+        }
+    }
+
+    if (topo_count == N)
+    {
+        for (int t = topo_count - 1; t >= 0; t--)
+        {
+            int from_node = topo[t];
+            for (int edge_index = 0; edge_index < adj_cnt[from_node]; edge_index++)
+            {
+                int to_node = adj[from_node][edge_index];
+                int edge_weight = adj_w[from_node][edge_index];
+                if (edge_weight + q_time[to_node] > q_time[from_node])
+                    q_time[from_node] = edge_weight + q_time[to_node];
+            }
+        }
+        return;
+    }
+
+    /* Fallback if graph is not DAG (should not normally happen). */
     for (int pass = 0; pass < N; pass++)
     {
         int changed = 0;
@@ -173,8 +258,7 @@ static void compute_tails(void)
             for (int edge_index = 0; edge_index < pred_cnt[to_node]; edge_index++)
             {
                 int from_node = pred[to_node][edge_index];
-                int edge_weight = pred_w[to_node][edge_index]; /* = proc_time[from_node] */
-                /* q[u] = max(q[u], w + q[v]) */
+                int edge_weight = pred_w[to_node][edge_index];
                 if (edge_weight + q_time[to_node] > q_time[from_node])
                 {
                     q_time[from_node] = edge_weight + q_time[to_node];
@@ -353,23 +437,21 @@ static void fix_machine(int machine, const int *sequence, int operation_count)
         int to_node = machine_seq[machine][i + 1];
         remove_arc(from_node, to_node);
     }
+    /* Store the sequence in machine_seq for future reference */
+    for (int order_index = 0; order_index < operation_count; order_index++)
+    {
+        machine_seq[machine][order_index] = ops_on_machine[machine][sequence[order_index]];
+    }
     /* Add new arcs according to sequence */
     for (int order_index = 0; order_index < operation_count - 1; order_index++)
     {
-        int from_node = ops_on_machine[machine][sequence[order_index]];
-        int to_node = ops_on_machine[machine][sequence[order_index + 1]];
-        int processing_time = 0;
-        for (int job = 0; job < num_jobs; job++)
-        {
-            for (int op = 0; op < num_machines; op++)
-            {
-                if (job * num_machines + op == from_node)
-                    processing_time = proc_time[job][op];
-            }
-        }
+        int from_node = machine_seq[machine][order_index];
+        int to_node = machine_seq[machine][order_index + 1];
+        /* Compute processing_time directly: job = from_node / num_machines, op = from_node % num_machines */
+        int job = from_node / num_machines;
+        int op = from_node % num_machines;
+        int processing_time = proc_time[job][op];
         add_arc(from_node, to_node, processing_time);
-        machine_seq[machine][order_index] = from_node;
-        machine_seq[machine][order_index + 1] = to_node;
     }
     machine_fixed[machine] = 1;
 }
@@ -382,15 +464,10 @@ static void get_rq_for_machine(int machine, int *release_out,
     for (int i = 0; i < operation_count; i++)
     {
         int operation_id = ops_on_machine[machine][i];
-        int processing_time = 0;
-        for (int job = 0; job < num_jobs; job++)
-        {
-            for (int op = 0; op < num_machines; op++)
-            {
-                if (job * num_machines + op == operation_id)
-                    processing_time = proc_time[job][op];
-            }
-        }
+        /* Compute processing_time directly: job = operation_id / num_machines, op = operation_id % num_machines */
+        int job = operation_id / num_machines;
+        int op = operation_id % num_machines;
+        int processing_time = proc_time[job][op];
         release_out[i] = r_time[operation_id];
         processing_out[i] = processing_time;
         tail_out[i] = q_time[operation_id];

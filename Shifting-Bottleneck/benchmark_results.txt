@@ -1,11 +1,53 @@
-Benchmark: data/ft06.jss | 5 reps | 30s limit
-Config: 8 logical CPUs on omachine
+Shifting-Bottleneck Benchmark - Job-Shop Scheduling
+Running on all inputs in: /home/Omachine/docs/GitHub/Job-Shop-CAD/Shifting-Bottleneck/data
+Target seconds per config: 1
+Threads tested: 1 2 4 8 16 32
+Machine: omachine with 8 logical CPUs
 ============================================================
-SEQ    | makespan=64    | avg_time=     0.161 ms | speedup= 1.000
-PC1    | makespan=64    | avg_time=     0.199 ms | speedup=.809
-PC2    | makespan=64    | avg_time=     0.274 ms | speedup=.587
-PC4    | makespan=64    | avg_time=     0.460 ms | speedup=.350
-PC8    | makespan=64    | avg_time=     5.135 ms | speedup=.031
-PC16   | makespan=64    | avg_time=     1.700 ms | speedup=.094
-PC32   | makespan=64    | avg_time=     2.833 ms | speedup=.056
+
+=== Testing: ft06 (7 lines) ===
+SEQ  | ft06                 | makespan=64    | avg_run=  3.211961 ms | runs=312 | total_time=1 s
+PAR  | ft06                 | T=1  | makespan=64    | avg_run=  3.017528 ms | speedup=1.064 | runs=332
+PAR  | ft06                 | T=2  | makespan=64    | avg_run=  3.606121 ms | speedup=0.891 | runs=278
+PAR  | ft06                 | T=4  | makespan=64    | avg_run=  3.463511 ms | speedup=0.927 | runs=289
+PAR  | ft06                 | T=8  | makespan=64    | avg_run= 12.369577 ms | speedup=0.260 | runs=81
+PAR  | ft06                 | T=16 | makespan=64    | avg_run=  4.153043 ms | speedup=0.773 | runs=241
+PAR  | ft06                 | T=32 | makespan=64    | avg_run=  4.802112 ms | speedup=0.669 | runs=209
+
+=== Testing: gg03 (4 lines) ===
+SEQ  | gg03                 | makespan=12    | avg_run=  3.312733 ms | runs=302 | total_time=1 s
+PAR  | gg03                 | T=1  | makespan=12    | avg_run=  3.157270 ms | speedup=1.049 | runs=317
+PAR  | gg03                 | T=2  | makespan=12    | avg_run=  3.268652 ms | speedup=1.013 | runs=306
+PAR  | gg03                 | T=4  | makespan=12    | avg_run=  3.283247 ms | speedup=1.009 | runs=305
+PAR  | gg03                 | T=8  | makespan=12    | avg_run=  7.203864 ms | speedup=0.460 | runs=140
+PAR  | gg03                 | T=16 | makespan=12    | avg_run=  4.022827 ms | speedup=0.823 | runs=249
+PAR  | gg03                 | T=32 | makespan=12    | avg_run=  4.325677 ms | speedup=0.766 | runs=232
+
+=== Testing: benchmark_test (16 lines) ===
+SEQ  | benchmark_test       | makespan=298   | avg_run=  4.005364 ms | runs=250 | total_time=1 s
+PAR  | benchmark_test       | T=1  | makespan=298   | avg_run=  4.196335 ms | speedup=0.954 | runs=239
+PAR  | benchmark_test       | T=2  | makespan=298   | avg_run=  5.183783 ms | speedup=0.773 | runs=194
+PAR  | benchmark_test       | T=4  | makespan=298   | avg_run=  4.334836 ms | speedup=0.924 | runs=231
+PAR  | benchmark_test       | T=8  | makespan=298   | avg_run= 13.298191 ms | speedup=0.301 | runs=81
+PAR  | benchmark_test       | T=16 | makespan=298   | avg_run=  5.343305 ms | speedup=0.750 | runs=188
+PAR  | benchmark_test       | T=32 | makespan=298   | avg_run=  7.209818 ms | speedup=0.556 | runs=139
+
+=== Testing: benchmark_large_50x50 (51 lines) ===
+SEQ  | benchmark_large_50x50 | makespan=1180  | avg_run=179.512809 ms | runs=6 | total_time=1 s
+PAR  | benchmark_large_50x50 | T=1  | makespan=1180  | avg_run=179.136518 ms | speedup=1.002 | runs=6
+PAR  | benchmark_large_50x50 | T=2  | makespan=1180  | avg_run=284.176634 ms | speedup=0.632 | runs=4
+PAR  | benchmark_large_50x50 | T=4  | makespan=1180  | avg_run=292.182516 ms | speedup=0.614 | runs=4
+PAR  | benchmark_large_50x50 | T=8  | makespan=1180  | avg_run=230.727009 ms | speedup=0.778 | runs=5
+PAR  | benchmark_large_50x50 | T=16 | makespan=1180  | avg_run=173.744549 ms | speedup=1.033 | runs=6
+PAR  | benchmark_large_50x50 | T=32 | makespan=1180  | avg_run=175.643775 ms | speedup=1.022 | runs=6
+
+=== Testing: benchmark_100x100 (101 lines) ===
+SEQ  | benchmark_100x100    | makespan=2880  | avg_run=3389.051613 ms | runs=1 | total_time=3 s
+PAR  | benchmark_100x100    | T=1  | makespan=2880  | avg_run=3152.520907 ms | speedup=1.075 | runs=1
+PAR  | benchmark_100x100    | T=2  | makespan=2880  | avg_run=3463.686850 ms | speedup=0.978 | runs=1
+PAR  | benchmark_100x100    | T=4  | makespan=2880  | avg_run=3171.873275 ms | speedup=1.068 | runs=1
+PAR  | benchmark_100x100    | T=8  | makespan=2880  | avg_run=3557.592544 ms | speedup=0.953 | runs=1
+PAR  | benchmark_100x100    | T=16 | makespan=2880  | avg_run=3305.625783 ms | speedup=1.025 | runs=1
+PAR  | benchmark_100x100    | T=32 | makespan=2880  | avg_run=3441.558338 ms | speedup=0.985 | runs=1
 ============================================================
+Results saved to: /home/Omachine/docs/GitHub/Job-Shop-CAD/Shifting-Bottleneck/benchmark_results.txt

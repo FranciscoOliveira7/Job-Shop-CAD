@@ -1,0 +1,67 @@
+Greedy Benchmark - Job-Shop Scheduling
+Running on all inputs in: /home/Omachine/docs/GitHub/Job-Shop-CAD/Greedy/data
+Repetitions: 1
+Threads tested: 1 2 4 8 16 32
+Machine: omachine with 8 logical CPUs
+============================================================
+
+=== Testing: benchmark_100x100 (101 lines) ===
+SEQ  | benchmark_100x100    | makespan=1999  | avg_run=  4.301604 ms | runs=13949 | total_time=60 s
+PAR  | benchmark_100x100    | T=1  | makespan=1999  | avg_run=  7.768068 ms | speedup=0.554 | runs=7724
+PAR  | benchmark_100x100    | T=2  | makespan=2002  | avg_run= 12.363559 ms | speedup=0.348 | runs=4853
+PAR  | benchmark_100x100    | T=4  | makespan=2003  | avg_run= 18.935124 ms | speedup=0.227 | runs=3172
+PAR  | benchmark_100x100    | T=8  | makespan=2047  | avg_run= 42.683762 ms | speedup=0.101 | runs=1406
+PAR  | benchmark_100x100    | T=16 | makespan=2076  | avg_run= 53.447327 ms | speedup=0.080 | runs=1123
+PAR  | benchmark_100x100    | T=32 | makespan=2118  | avg_run= 91.196190 ms | speedup=0.047 | runs=659
+
+=== Testing: benchmark_200x200 (201 lines) ===
+SEQ  | benchmark_200x200    | makespan=4167  | avg_run= 11.457152 ms | runs=5237 | total_time=60 s
+PAR  | benchmark_200x200    | T=1  | makespan=4167  | avg_run= 22.021640 ms | speedup=0.520 | runs=2725
+PAR  | benchmark_200x200    | T=2  | makespan=4195  | avg_run= 40.175678 ms | speedup=0.285 | runs=1494
+PAR  | benchmark_200x200    | T=4  | makespan=4141  | avg_run= 64.196177 ms | speedup=0.178 | runs=935
+PAR  | benchmark_200x200    | T=8  | makespan=4138  | avg_run=124.269554 ms | speedup=0.092 | runs=483
+PAR  | benchmark_200x200    | T=16 | makespan=4327  | avg_run=115.243215 ms | speedup=0.099 | runs=521
+PAR  | benchmark_200x200    | T=32 | makespan=4259  | avg_run=193.801253 ms | speedup=0.059 | runs=310
+
+=== Testing: benchmark_large_50x50 (51 lines) ===
+SEQ  | benchmark_large_50x50 | makespan=989   | avg_run=  2.912327 ms | runs=20603 | total_time=60 s
+PAR  | benchmark_large_50x50 | T=1  | makespan=989   | avg_run=  4.040413 ms | speedup=0.721 | runs=14850
+PAR  | benchmark_large_50x50 | T=2  | makespan=994   | avg_run=  5.758840 ms | speedup=0.506 | runs=10419
+PAR  | benchmark_large_50x50 | T=4  | makespan=1003  | avg_run=  7.467908 ms | speedup=0.390 | runs=8035
+PAR  | benchmark_large_50x50 | T=8  | makespan=1091  | avg_run=1540.784363 ms | speedup=0.002 | runs=39
+PAR  | benchmark_large_50x50 | T=16 | makespan=993   | avg_run= 31.618851 ms | speedup=0.092 | runs=1898
+PAR  | benchmark_large_50x50 | T=32 | makespan=990   | avg_run= 48.434007 ms | speedup=0.060 | runs=1239
+
+=== Testing: benchmark_test (16 lines) ===
+SEQ  | benchmark_test       | makespan=261   | avg_run=  2.608771 ms | runs=23000 | total_time=60 s
+PAR  | benchmark_test       | T=1  | makespan=261   | avg_run=  2.697115 ms | speedup=0.967 | runs=22246
+PAR  | benchmark_test       | T=2  | makespan=283   | avg_run=  2.891569 ms | speedup=0.902 | runs=20750
+PAR  | benchmark_test       | T=4  | makespan=304   | avg_run=  3.057989 ms | speedup=0.853 | runs=19621
+PAR  | benchmark_test       | T=8  | makespan=295   | avg_run= 14.797899 ms | speedup=0.176 | runs=4056
+PAR  | benchmark_test       | T=16 | makespan=288   | avg_run=  9.259719 ms | speedup=0.282 | runs=6480
+PAR  | benchmark_test       | T=32 | makespan=316   | avg_run= 17.007626 ms | speedup=0.153 | runs=3529
+
+=== Testing: ft06 (7 lines) ===
+SEQ  | ft06                 | makespan=60    | avg_run=  2.398226 ms | runs=25019 | total_time=60 s
+PAR  | ft06                 | T=1  | makespan=60    | avg_run=  2.537500 ms | speedup=0.945 | runs=23646
+PAR  | ft06                 | T=2  | makespan=60    | avg_run=  2.718749 ms | speedup=0.882 | runs=22069
+PAR  | ft06                 | T=4  | makespan=60    | avg_run=  2.758439 ms | speedup=0.869 | runs=21752
+PAR  | ft06                 | T=8  | makespan=65    | avg_run= 13.365807 ms | speedup=0.179 | runs=4490
+PAR  | ft06                 | T=16 | makespan=67    | avg_run=  5.952245 ms | speedup=0.403 | runs=10081
+PAR  | ft06                 | T=32 | makespan=70    | avg_run=  9.680087 ms | speedup=0.248 | runs=6199
+
+=== Testing: gg03 (4 lines) ===
+SEQ  | gg03                 | makespan=11    | avg_run=  2.372060 ms | runs=25295 | total_time=60 s
+PAR  | gg03                 | T=1  | makespan=11    | avg_run=  2.490838 ms | speedup=0.952 | runs=24089
+PAR  | gg03                 | T=2  | makespan=11    | avg_run=  2.641348 ms | speedup=0.898 | runs=22716
+PAR  | gg03                 | T=4  | makespan=11    | avg_run=  2.688925 ms | speedup=0.882 | runs=22314
+PAR  | gg03                 | T=8  | makespan=11    | avg_run= 14.414160 ms | speedup=0.165 | runs=4165
+PAR  | gg03                 | T=16 | makespan=11    | avg_run=  5.276828 ms | speedup=0.450 | runs=11371
+PAR  | gg03                 | T=32 | makespan=11    | avg_run=  7.664906 ms | speedup=0.309 | runs=7828
+============================================================
+Results saved to: /home/Omachine/docs/GitHub/Job-Shop-CAD/Greedy/benchmark_results.txt
+
+=== Benchmark Usage ===
+Run with custom repetitions: ./benchmark.sh <reps>
+Or specify one file: ./benchmark.sh <reps> <input_file>
+Example: ./benchmark.sh 10

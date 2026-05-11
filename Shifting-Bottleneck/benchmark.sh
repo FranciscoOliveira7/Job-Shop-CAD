@@ -1,59 +1,99 @@
-#!/bin/bash
-# Benchmark script – Computação de Alto Desempenho
-# Usage: ./benchmark.sh <input_file> [reps] [time_limit_sec]
+#!/usr/bin/env bash
+set -euo pipefail
 
-INPUT=${1:-data/ft06.jss}
-REPS=${2:-5}
-LIMIT=${3:-30}
-OUT_FILE="benchmark_results.txt"
-SEQ=./sequential/jobshop_seq
-PAR=./parallel/jobshop_par
+ROOT_DIR=$(cd "$(dirname "$0")" && pwd)
+SEQ_SRC="$ROOT_DIR/sequential/jobshop_seq.c"
+PAR_SRC="$ROOT_DIR/parallel/jobshop_par.c"
+DATA_DIR="$ROOT_DIR/data"
+BUILD_DIR="$ROOT_DIR/.benchmark-bin"
+OUT_FILE="$ROOT_DIR/benchmark_results.txt"
+TARGET_SEC=${1:-60}
 THREADS=(1 2 4 8 16 32)
 
-get_time()    { echo "$1" | grep "Time"     | grep -oP '[0-9]+\.[0-9]+'; }
-get_makespan(){ echo "$1" | grep "Makespan" | grep -oP '[0-9]+' | tail -1; }
+mkdir -p "$BUILD_DIR"
 
-sum_times() {
-    local total=0
-    for t in "$@"; do total=$(echo "$total + $t" | bc); done
-    echo $total
+SEQ_BIN="$BUILD_DIR/jobshop_seq"
+PAR_BIN="$BUILD_DIR/jobshop_par"
+
+gcc -O2 -Wall -Wextra -o "$SEQ_BIN" "$SEQ_SRC"
+gcc -O2 -Wall -Wextra -fopenmp -o "$PAR_BIN" "$PAR_SRC"
+
+ns_to_ms() {
+    awk -v t="$1" 'BEGIN { printf "%.6f", t / 1000000 }'
 }
 
-echo "Benchmark: $INPUT | ${REPS} reps | ${LIMIT}s limit" | tee "$OUT_FILE"
-echo "Config: $(nproc) logical CPUs on $(uname -n)" | tee -a "$OUT_FILE"
-echo "============================================================" | tee -a "$OUT_FILE"
+run_seq_case() {
+    local input_file=$1
+    local label=$2
+    local start_ns=$(date +%s%N)
+    local target_ns=$((TARGET_SEC * 1000000000))
+    local runs=0
+    local makespan=0
+    local elapsed=0
 
-# ── Sequential ─────────────────────────────────────────────────
-times=()
-makespan=0
-for i in $(seq 1 $REPS); do
-    result=$($SEQ "$INPUT" /tmp/bench_seq.out $LIMIT)
-    t=$(get_time "$result")
-    makespan=$(get_makespan "$result")
-    times+=("$t")
-done
-total=$(sum_times "${times[@]}")
-avg=$(echo "scale=3; $total / $REPS" | bc)
-printf "%-6s | makespan=%-5s | avg_time=%10.3f ms | speedup= 1.000\n" \
-    "SEQ" "$makespan" "$avg" | tee -a "$OUT_FILE"
-seq_time=$avg
-
-# ── Parallel ───────────────────────────────────────────────────
-for T in "${THREADS[@]}"; do
-    times=()
-    makespan=0
-    for i in $(seq 1 $REPS); do
-        result=$($PAR "$INPUT" /tmp/bench_par.out $T $LIMIT)
-        t=$(get_time "$result")
-        makespan=$(get_makespan "$result")
-        times+=("$t")
+    while [ $elapsed -lt $target_ns ]; do
+        "$SEQ_BIN" "$input_file" "$BUILD_DIR/seq.out" >/dev/null
+        makespan=$(head -1 "$BUILD_DIR/seq.out")
+        runs=$((runs + 1))
+        elapsed=$(( $(date +%s%N) - start_ns ))
     done
-    total=$(sum_times "${times[@]}")
-    avg=$(echo "scale=3; $total / $REPS" | bc)
-    speedup=$(echo "scale=3; $seq_time / $avg" | bc 2>/dev/null || echo "N/A")
-    printf "PC%-4s | makespan=%-5s | avg_time=%10.3f ms | speedup=%s\n" \
-        "$T" "$makespan" "$avg" "$speedup" | tee -a "$OUT_FILE"
+
+    avg_ms=$(ns_to_ms $(awk -v t="$elapsed" -v r="$runs" 'BEGIN { if (r>0) printf "%d", t / r; else print 0 }'))
+    printf "SEQ  | %-20s | makespan=%-5s | avg_run=%10.6f ms | runs=%d | total_time=%d s\n" \
+        "$label" "$makespan" "$avg_ms" "$runs" $((elapsed/1000000000)) | tee -a "$OUT_FILE" >/dev/stderr
+    echo "$avg_ms"
+}
+
+run_par_case() {
+    local input_file=$1
+    local label=$2
+    local seq_time_ms=$3
+
+    for T in "${THREADS[@]}"; do
+        local start_ns=$(date +%s%N)
+        local target_ns=$((TARGET_SEC * 1000000000))
+        local runs=0
+        local makespan=0
+        local elapsed=0
+
+        while [ $elapsed -lt $target_ns ]; do
+            "$PAR_BIN" "$input_file" "$BUILD_DIR/par.out" "$T" >/dev/null
+            makespan=$(head -1 "$BUILD_DIR/par.out")
+            runs=$((runs + 1))
+            elapsed=$(( $(date +%s%N) - start_ns ))
+        done
+
+        avg_ms=$(ns_to_ms $(awk -v t="$elapsed" -v r="$runs" 'BEGIN { if (r>0) printf "%d", t / r; else print 0 }'))
+        speedup=$(awk -v s="$seq_time_ms" -v p="$avg_ms" 'BEGIN { if (p>0) printf "%.3f", s / p; else print "N/A" }')
+        printf "PAR  | %-20s | T=%-2s | makespan=%-5s | avg_run=%10.6f ms | speedup=%s | runs=%d\n" \
+            "$label" "$T" "$makespan" "$avg_ms" "$speedup" "$runs" | tee -a "$OUT_FILE" >/dev/stderr
+    done
+}
+
+rm -f "$OUT_FILE"
+{
+    echo "Shifting-Bottleneck Benchmark - Job-Shop Scheduling"
+    echo "Running on all inputs in: $DATA_DIR"
+    echo "Target seconds per config: $TARGET_SEC"
+    echo "Threads tested: ${THREADS[*]}"
+    echo "Machine: $(uname -n) with $(nproc) logical CPUs"
+    echo "============================================================"
+} | tee "$OUT_FILE"
+
+# Test the same representative inputs as Greedy, plus the larger 50x50 and 100x100 cases
+INPUTS=("ft06" "gg03" "benchmark_test" "benchmark_large_50x50" "benchmark_100x100")
+
+for input_name in "${INPUTS[@]}"; do
+    input_file="$DATA_DIR/${input_name}.jss"
+    [ -f "$input_file" ] || continue
+    case_label=$(basename "$input_file" .jss)
+    file_size=$(wc -l < "$input_file")
+    echo "" | tee -a "$OUT_FILE"
+    echo "=== Testing: $case_label ($file_size lines) ===" | tee -a "$OUT_FILE"
+
+    seq_time_ms=$(run_seq_case "$input_file" "$case_label")
+    run_par_case "$input_file" "$case_label" "$seq_time_ms"
 done
 
 echo "============================================================" | tee -a "$OUT_FILE"
-echo "Results saved to: $OUT_FILE"
+echo "Results saved to: $OUT_FILE" | tee -a "$OUT_FILE"
