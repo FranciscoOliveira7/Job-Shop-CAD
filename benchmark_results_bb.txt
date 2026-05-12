@@ -1,0 +1,24 @@
+Branch-and-Bound Benchmark (bb_seqteste.c vs bb_parteste.c)
+Input: data/ft06.jss
+Target seconds per configuration: 1
+Threads tested: 1 2 4 8 16 32
+============================================================
+SEQ  | T=1  | makespan=60     | avg_run=80599.532300 ms | runs=1 | total=80s
+------------------------------------------------------------
+Table for report (Secao C format):
+Type | Time(ms)   | Makespan | Speedup
+SEQ  | 80599.532300 | 60       | 1.000  
+PAR  | T=1  | makespan=60     | avg_run=90044.801700 ms | speedup=0.895 | runs=1 | OK
+PC1  | 90044.801700 |       60 | 0.895
+PAR  | T=2  | makespan=60     | avg_run=83140.557900 ms | speedup=0.969 | runs=1 | OK
+PC2  | 83140.557900 |       60 | 0.969
+PAR  | T=4  | makespan=60     | avg_run=82429.923500 ms | speedup=0.978 | runs=1 | OK
+PC4  | 82429.923500 |       60 | 0.978
+PAR  | T=8  | makespan=59     | avg_run=71252.736200 ms | speedup=1.131 | runs=1 | DIFF
+PC8  | 71252.736200 |       59 | 1.131
+PAR  | T=16 | makespan=59     | avg_run=72645.798200 ms | speedup=1.109 | runs=1 | DIFF
+PC16 | 72645.798200 |       59 | 1.109
+PAR  | T=32 | makespan=59     | avg_run=70653.724000 ms | speedup=1.141 | runs=1 | DIFF
+PC32 | 70653.724000 |       59 | 1.141
+============================================================
+Results saved to: benchmark_results_bb.txt
