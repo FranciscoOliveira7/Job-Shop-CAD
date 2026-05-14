@@ -9,7 +9,7 @@
 #define MAX_STACK 50000
 #define MAX_NODES_EXPLORED 34000000LL
 
-#define NUM_REPETICOES 1  
+#define NUM_REPETICOES 3
 
 static int nJobs, nMachines;
 static int machine[MAX_JOBS][MAX_MACHINES];
